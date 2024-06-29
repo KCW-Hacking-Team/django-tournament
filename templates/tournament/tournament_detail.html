@@ -1,0 +1,29 @@
+{% extends 'layout.html'%}
+{% block content %}
+    <h1>Tournament: {{tournament}}</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Team Name</th>
+                <th>Games Played</th>
+                <th>Points</th>
+                <th>Goal Difference</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for participant in participants %}
+            <tr>
+                <td>{{ participant }}</td>
+                <td> {{ participant.games_played }} </td>
+                <td> {{ participant.calculate_points }} </td>
+                <td> {{participant.calculate_goal_diff }}</td>
+            {% empty %}
+            <tr>
+                <td>No participants listed yet.</td>
+            </tr>
+{% endfor %}
+        </tbody>
+    </table>
+
+   
+{% endblock content %}

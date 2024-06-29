@@ -1,3 +1,5 @@
+import datetime
+from django.core.exceptions import ValidationError
 from django.db import models
 from django_countries.fields import CountryField
 from phonenumber_field.modelfields import PhoneNumberField
@@ -63,6 +65,12 @@ class Tournament(models.Model):
     modified_at = models.DateTimeField(auto_now=True, editable=False)
     participants = models.ManyToManyField(Team, through="Participant")
 
+    def clean(self):
+        # End_Date has to be later than start_Date
+        if self.start_date >= self.end_date:
+            raise ValidationError(
+                ("Start Date can not be later than End Date."))
+
     def __str__(self):
         start_str = self.start_date.strftime('%Y-%m-%d')
         end_str = self.end_date.strftime('%Y-%m-%d')
@@ -71,11 +79,53 @@ class Tournament(models.Model):
 
 
 class Participant(models.Model):
+
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE)
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.team.name
+
+    def games_played(self):
+        home_games = self.HomeTeam.filter(
+            tournament_id=self.tournament.id).count()
+        away_games = self.AwayTeam.filter(
+            tournament_id=self.tournament.id).count()
+        games = home_games + away_games
+
+        return games
+
+    def calculate_points(self):
+        home_games = self.HomeTeam.filter(tournament_id=self.tournament.id)
+        away_games = self.AwayTeam.filter(tournament_id=self.tournament.id)
+        points = 0
+
+        for game in home_games:
+            if game.home_goals > game.away_goals:
+                points = points+3
+            if game.home_goals == game.away_goals:
+                points = points+1
+
+        for game in away_games:
+            if game.away_goals > game.home_goals:
+                points = points+3
+            if game.away_goals == game.home_goals:
+                points = points+1
+
+        return points
+
+    def calculate_goal_diff(self):
+        home_games = self.HomeTeam.filter(tournament_id=self.tournament.id)
+        away_games = self.AwayTeam.filter(tournament_id=self.tournament.id)
+        goal_diff = 0
+
+        for game in home_games:
+            goal_diff = goal_diff + game.home_goals - game.away_goals
+
+        for game in away_games:
+            goal_diff = goal_diff + game.away_goals - game.home_goals
+
+        return goal_diff
 
 
 class Game(models.Model):
